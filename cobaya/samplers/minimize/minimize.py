@@ -87,6 +87,7 @@ from typing import Optional, Union
 import re
 import pybobyqa
 from pybobyqa import controller
+import iminuit
 from itertools import chain
 
 # Local
@@ -99,7 +100,7 @@ from cobaya.sampler import CovmatSampler
 from cobaya import mpi
 
 # Handling scipy vs BOBYQA
-evals_attr = {"scipy": "fun", "bobyqa": "f"}
+evals_attr = {"scipy": "fun", "minuit": "fun", "bobyqa": "f"}
 valid_methods = tuple(evals_attr)
 
 # Conventions conventions
@@ -134,6 +135,7 @@ class Minimize(Minimizer, CovmatSampler):
     best_of: int
     override_bobyqa: Optional[dict]
     override_scipy: Optional[dict]
+    override_minuit: Optional[dict]
     max_evals: Union[str, int]
 
     def initialize(self):
@@ -264,6 +266,21 @@ class Minimize(Minimizer, CovmatSampler):
                     if not success:
                         self.log.error("Finished unsuccessfully. Reason: "
                                        + _bobyqa_errors[result.flag])
+                elif self.method.lower() == "minuit":
+                    # result = Minuit(minuslogp_transf, initial_point)
+                    # result.limits = bounds
+                    # result.errordef = 0.5
+                    # result.migrad(ncall=self.max_iter)
+                    self.kwargs = {
+                        "bounds": bounds,
+                        "options": {
+                            "maxfun": self.max_iter,
+                            "disp": self.is_debug()}}
+                    self.kwargs = recursive_update(self.kwargs, self.override_minuit or {})
+                    result=iminuit.minimize(minuslogp_transf, initial_point, **self.kwargs)
+                    success = result.success
+                    if not success:
+                        self.log.error("Finished unsuccessfully.")
                 else:
                     self.kwargs = {
                         "fun": minuslogp_transf,

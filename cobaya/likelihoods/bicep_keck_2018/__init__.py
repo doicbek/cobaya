@@ -245,7 +245,7 @@ class bicep_keck_2018(CMBlikes):
         rat = np.arange(self.pcl_lmin, self.pcl_lmax + 1) / lpivot
         dustpow = Adust * rat ** alphadust
         syncpow = Async * rat ** alphasync
-        dustsyncpow = (dustsync_corr * np.sqrt(Adust * Async) *
+        dustsyncpow = (dustsync_corr * np.sign(Adust) * np.sign(Async) * np.sqrt(np.abs(Adust * Async)) *
                        rat ** ((alphadust + alphasync) / 2))
 
         #  Only calculate foreground decorrelation if necessary.
